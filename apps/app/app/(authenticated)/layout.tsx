@@ -1,5 +1,7 @@
 import { auth, currentUser } from "@repo/auth/server";
+import { SidebarProvider } from "@repo/design-system/components/ui/sidebar";
 import type { ReactNode } from "react";
+import { NotificationsProvider } from "./components/notifications-provider";
 
 interface AppLayoutProperties {
   readonly children: ReactNode;
@@ -13,7 +15,13 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
     return redirectToSignIn();
   }
 
-  return <>{children}</>;
+  return (
+    <NotificationsProvider userId={user.id}>
+      <SidebarProvider>
+        {children}
+      </SidebarProvider>
+    </NotificationsProvider>
+  );
 };
 
 export default AppLayout;
