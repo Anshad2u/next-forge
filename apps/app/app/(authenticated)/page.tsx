@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@repo/auth/server";
 import { database } from "@repo/database";
-import { logger } from "@repo/observability/logging";
+import { log } from "@repo/observability/log";
 import { secure } from "@repo/security";
 
 const title = "Acme Inc";
@@ -21,14 +21,14 @@ const App = async () => {
   try {
     await secure();
   } catch {
-    logger.warn("Arcjet secure check failed");
+    log.warn("Arcjet secure check failed");
   }
 
   try {
     pages = await database.page.findMany({ take: 10 });
   } catch (e) {
     error = e instanceof Error ? e.message : "Database error";
-    logger.error(error);
+    log.error(error);
   }
 
   return (
