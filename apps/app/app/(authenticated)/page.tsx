@@ -27,10 +27,15 @@ const App = async () => {
   try {
     pages = await database.page.findMany({ take: 10 });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const stack = e instanceof Error ? e.stack : "";
-    error = msg;
-    log.error("DB error: " + msg + " " + stack);
+    const type = typeof e;
+    const ctor = e?.constructor?.name;
+    const keys = Object.getOwnPropertyNames(e);
+    const safeData = {};
+    for (const k of keys) {
+      try { safeData[k] = String(e[k]); } catch { safeData[k] = "?unstringifiable?"; }
+    }
+    error = JSON.stringify({ type, ctor, keys, data: safeData });
+    log.error("DB error: " + error);
   }
 
   return (
