@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@repo/auth/server";
-import { database } from "@repo/database";
+import { database, type Page } from "@repo/database";
 import { log } from "@repo/observability/log";
 import { secure } from "@repo/security";
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const App = async () => {
   const { userId, orgId } = await auth();
 
-  let pages: { id: string; title: string }[] = [];
+  let pages: Page[] = [];
   let error: string | null = null;
 
   try {
@@ -49,7 +49,7 @@ const App = async () => {
       {pages.length > 0 && (
         <ul className="text-sm text-muted-foreground">
           {pages.map((page) => (
-            <li key={page.id}>{page.title}</li>
+            <li key={page.id}>{page.name}</li>
           ))}
         </ul>
       )}
