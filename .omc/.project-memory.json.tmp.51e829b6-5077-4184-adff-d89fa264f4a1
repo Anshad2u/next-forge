@@ -1,0 +1,223 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1779451566749,
+  "projectRoot": "C:\\Users\\muzai\\VS Code Projects\\next-forge-saas-starter",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vitest",
+        "version": "4.0.18",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "build": "turbo build",
+      "dev": "turbo dev",
+      "check": "ultracite check",
+      "fix": "ultracite fix",
+      "test": "turbo test",
+      "analyze": "turbo analyze",
+      "translate": "turbo translate",
+      "boundaries": "turbo boundaries",
+      "bump-deps": "bunx npm-check-updates --deep -u && bun install",
+      "bump-ui": "bunx shadcn@latest add --all --overwrite -c packages/design-system",
+      "migrate": "cd packages/database && bunx prisma format && bunx prisma generate && bunx prisma migrate dev",
+      "migrate:deploy": "cd packages/database && bunx prisma generate && bunx prisma migrate deploy",
+      "db:push": "cd packages/database && bunx prisma format && bunx prisma generate && bunx prisma db push",
+      "clean": "git clean -xdf node_modules",
+      "release": "npm publish"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "apps/*",
+      "packages/*"
+    ],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779451566637,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 13,
+      "lastAccessed": 1779451566642,
+      "keyFiles": [
+        "bun.lock",
+        "components.json",
+        "geistdocs.tsx",
+        "next.config.ts",
+        "package.json"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779451566660,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 4,
+      "lastAccessed": 1779451566661,
+      "keyFiles": [
+        "index.ts",
+        "initialize.ts",
+        "update.ts",
+        "utils.ts"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779451566661,
+      "keyFiles": []
+    },
+    "turbo": {
+      "path": "turbo",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779451566662,
+      "keyFiles": []
+    },
+    "apps\\api": {
+      "path": "apps\\api",
+      "purpose": "API routes",
+      "fileCount": 13,
+      "lastAccessed": 1779451566664,
+      "keyFiles": [
+        "env.ts",
+        "instrumentation-client.ts",
+        "instrumentation.ts"
+      ]
+    },
+    "apps\\app": {
+      "path": "apps\\app",
+      "purpose": "Application code",
+      "fileCount": 16,
+      "lastAccessed": 1779451566664,
+      "keyFiles": [
+        "env.ts",
+        "instrumentation-client.ts",
+        "instrumentation.ts"
+      ]
+    },
+    "apps\\docs": {
+      "path": "apps\\docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1779451566665,
+      "keyFiles": [
+        "development.mdx",
+        "favicon.svg",
+        "introduction.mdx"
+      ]
+    },
+    "docs\\app": {
+      "path": "docs\\app",
+      "purpose": "Application code",
+      "fileCount": 5,
+      "lastAccessed": 1779451566666,
+      "keyFiles": [
+        "favicon.ico",
+        "global.css",
+        "opengraph-image.png"
+      ]
+    },
+    "docs\\components": {
+      "path": "docs\\components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1779451566666,
+      "keyFiles": [
+        "vercel.tsx"
+      ]
+    },
+    "docs\\lib": {
+      "path": "docs\\lib",
+      "purpose": "Library code",
+      "fileCount": 1,
+      "lastAccessed": 1779451566667,
+      "keyFiles": [
+        "utils.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "packages\\cms\\basehub-types.d.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779452553596,
+      "type": "file"
+    },
+    {
+      "path": "packages\\cms\\index.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779453213460,
+      "type": "file"
+    },
+    {
+      "path": "apps\\web\\app\\[locale]\\(home)\\components\\hero.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1779452594928,
+      "type": "file"
+    },
+    {
+      "path": "apps\\web",
+      "accessCount": 1,
+      "lastAccessed": 1779453236469,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"C:/Users/muzai/VS Code Projects/next-forge-saas-starter\\\" && vercel env add FLAGS_SECRET production --scope anshad2us-projects <<< '1MqPPJTtz59Ujkd2F36RG_RiEi8-B84tDtZOXXW3WMg' 2>&1\",...",
+  "error": "Exit code 1",
+  "timestamp": "2026-05-22T13:20:35.527Z",
+  "retry_count": 1
+}

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /c/Users/muzai/VS\\\\ Code\\\\ Projects/next-forge-saas-starter/apps/web && vercel deploy --prod --yes --scope anshad2us-projects 2>&1\",\"timeout\":300000,\"description\":\"Deploy directly via V...",
+  "error": "Exit code 1",
+  "timestamp": "2026-05-23T02:37:31.766Z",
+  "retry_count": 1
+}

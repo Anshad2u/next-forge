@@ -54,8 +54,10 @@ const postFragment = fragmentOn("PostsItem", {
   },
 });
 
-export type PostMeta = fragmentOn.infer<typeof postMetaFragment>;
-export type Post = fragmentOn.infer<typeof postFragment>;
+import type { BlogPostComponent, LegalPageComponent } from "./basehub-types";
+
+export type PostMeta = Pick<BlogPostComponent, "_slug" | "_title" | "authors" | "categories" | "description" | "image">;
+export type Post = BlogPostComponent;
 
 export const blog = {
   postsQuery: {
@@ -153,8 +155,10 @@ const legalPostFragment = fragmentOn("LegalPagesItem", {
   },
 });
 
-export type LegalPostMeta = fragmentOn.infer<typeof legalPostMetaFragment>;
-export type LegalPost = fragmentOn.infer<typeof legalPostFragment>;
+import type { LegalPageComponent } from "./basehub-types";
+
+export type LegalPostMeta = Pick<LegalPageComponent, "_slug" | "_title" | "description">;
+export type LegalPost = LegalPageComponent;
 
 export const legal = {
   postsMetaQuery: {

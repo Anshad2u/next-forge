@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"pwd && ls apps/web/\",\"description\":\"Check current directory and web app\"}",
+  "error": "Exit code 2",
+  "timestamp": "2026-05-23T02:34:14.333Z",
+  "retry_count": 3
+}
