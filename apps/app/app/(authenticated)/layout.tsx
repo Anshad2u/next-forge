@@ -13,7 +13,11 @@ interface AppLayoutProperties {
 
 const AppLayout = async ({ children }: AppLayoutProperties) => {
   if (env.ARCJET_KEY) {
-    await secure(["CATEGORY:PREVIEW"]);
+    try {
+      await secure(["CATEGORY:PREVIEW"]);
+    } catch {
+      console.error("Arcjet security check failed");
+    }
   }
 
   const user = await currentUser();
