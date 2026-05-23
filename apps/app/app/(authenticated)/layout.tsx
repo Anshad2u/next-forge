@@ -12,36 +12,41 @@ interface AppLayoutProperties {
 }
 
 const AppLayout = async ({ children }: AppLayoutProperties) => {
-  if (env.ARCJET_KEY) {
-    try {
-      await secure(["CATEGORY:PREVIEW"]);
-    } catch {
-      console.error("Arcjet security check failed");
+  try {
+    if (env.ARCJET_KEY) {
+      try {
+        await secure(["CATEGORY:PREVIEW"]);
+      } catch {
+        console.error("Arcjet security check failed");
+      }
     }
+
+    const user = await currentUser();
+    const { redirectToSignIn } = await auth();
+    const betaFeature = await showBetaFeature();
+
+    if (!user) {
+      return redirectToSignIn();
+    }
+
+    return (
+      <NotificationsProvider userId={user.id}>
+        <SidebarProvider>
+          <GlobalSidebar>
+            {betaFeature && (
+              <div className="m-4 rounded-full bg-blue-500 p-1.5 text-center text-sm text-white">
+                Beta feature now available
+              </div>
+            )}
+            {children}
+          </GlobalSidebar>
+        </SidebarProvider>
+      </NotificationsProvider>
+    );
+  } catch (error) {
+    console.error("Authenticated layout error:", error);
+    throw error;
   }
-
-  const user = await currentUser();
-  const { redirectToSignIn } = await auth();
-  const betaFeature = await showBetaFeature();
-
-  if (!user) {
-    return redirectToSignIn();
-  }
-
-  return (
-    <NotificationsProvider userId={user.id}>
-      <SidebarProvider>
-        <GlobalSidebar>
-          {betaFeature && (
-            <div className="m-4 rounded-full bg-blue-500 p-1.5 text-center text-sm text-white">
-              Beta feature now available
-            </div>
-          )}
-          {children}
-        </GlobalSidebar>
-      </SidebarProvider>
-    </NotificationsProvider>
-  );
 };
 
 export default AppLayout;
