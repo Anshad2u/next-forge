@@ -27,8 +27,10 @@ const App = async () => {
   try {
     pages = await database.page.findMany({ take: 10 });
   } catch (e) {
-    error = e instanceof Error ? e.message : "Database error";
-    log.error(error);
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : "";
+    error = msg;
+    log.error("DB error: " + msg + " " + stack);
   }
 
   return (
