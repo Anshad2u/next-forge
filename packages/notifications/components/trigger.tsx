@@ -24,7 +24,7 @@ export const NotificationsTrigger = () => {
     setIsVisible(false);
   };
 
-  if (!keys().NEXT_PUBLIC_KNOCK_API_KEY) {
+  if (!keys().NEXT_PUBLIC_KNOCK_API_KEY || !keys().NEXT_PUBLIC_KNOCK_FEED_CHANNEL_ID) {
     return null;
   }
 
