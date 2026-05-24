@@ -6,22 +6,40 @@ import type {
   UserJSON,
   WebhookEvent,
 } from "@repo/auth/server";
+import { database } from "@repo/database";
 import { log } from "@repo/observability/log";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { env } from "@/env";
 
-const handleUserCreated = (data: UserJSON) => {
+const handleUserCreated = async (data: UserJSON) => {
+  const email = data.email_addresses.at(0)?.email_address ?? null;
+  const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
+
+  await database.user.upsert({
+    where: { id: data.id },
+    create: {
+      id: data.id,
+      email,
+      name,
+      imageUrl: data.image_url,
+    },
+    update: {
+      email,
+      name,
+      imageUrl: data.image_url,
+    },
+  });
+
   analytics?.identify({
     distinctId: data.id,
     properties: {
-      email: data.email_addresses.at(0)?.email_address,
+      email,
       firstName: data.first_name,
       lastName: data.last_name,
       createdAt: new Date(data.created_at),
       avatar: data.image_url,
-      phoneNumber: data.phone_numbers.at(0)?.phone_number,
     },
   });
 
@@ -33,16 +51,33 @@ const handleUserCreated = (data: UserJSON) => {
   return new Response("User created", { status: 201 });
 };
 
-const handleUserUpdated = (data: UserJSON) => {
+const handleUserUpdated = async (data: UserJSON) => {
+  const email = data.email_addresses.at(0)?.email_address ?? null;
+  const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
+
+  await database.user.upsert({
+    where: { id: data.id },
+    create: {
+      id: data.id,
+      email,
+      name,
+      imageUrl: data.image_url,
+    },
+    update: {
+      email,
+      name,
+      imageUrl: data.image_url,
+    },
+  });
+
   analytics?.identify({
     distinctId: data.id,
     properties: {
-      email: data.email_addresses.at(0)?.email_address,
+      email,
       firstName: data.first_name,
       lastName: data.last_name,
       createdAt: new Date(data.created_at),
       avatar: data.image_url,
-      phoneNumber: data.phone_numbers.at(0)?.phone_number,
     },
   });
 
@@ -54,8 +89,12 @@ const handleUserUpdated = (data: UserJSON) => {
   return new Response("User updated", { status: 201 });
 };
 
-const handleUserDeleted = (data: DeletedObjectJSON) => {
+const handleUserDeleted = async (data: DeletedObjectJSON) => {
   if (data.id) {
+    await database.user.delete({ where: { id: data.id } }).catch(() => {
+      log.warn("User not found in DB for deletion", { id: data.id });
+    });
+
     analytics?.identify({
       distinctId: data.id,
       properties: {
