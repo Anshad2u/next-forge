@@ -21,9 +21,15 @@ import { cn } from "@repo/design-system/lib/utils";
 import { NotificationsTrigger } from "@repo/notifications/components/trigger";
 import {
   AnchorIcon,
+  BotIcon,
+  CoinsIcon,
   CreditCardIcon,
+  FileTextIcon,
   LayoutDashboardIcon,
+  PaletteIcon,
   SettingsIcon,
+  ShieldIcon,
+  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -31,33 +37,99 @@ import { Search } from "./search";
 
 interface GlobalSidebarProperties {
   readonly children: ReactNode;
+  readonly currentPlan?: string;
 }
 
-const navMain = [
+interface NavItem {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboardIcon;
+  plan?: string; // Minimum plan required: "free", "pro", "enterprise"
+}
+
+const navMain: NavItem[] = [
   {
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboardIcon,
+    plan: "free",
   },
   {
     title: "Billing",
     url: "/billing",
     icon: CreditCardIcon,
+    plan: "free",
+  },
+  {
+    title: "Invoices",
+    url: "/invoices",
+    icon: FileTextIcon,
+    plan: "free",
+  },
+  {
+    title: "Team",
+    url: "/team",
+    icon: UsersIcon,
+    plan: "pro",
   },
   {
     title: "Settings",
     url: "/settings",
     icon: SettingsIcon,
+    plan: "free",
   },
   {
     title: "Webhooks",
     url: "/webhooks",
     icon: AnchorIcon,
+    plan: "free",
+  },
+  {
+    title: "Audit Log",
+    url: "/audit",
+    icon: ShieldIcon,
+    plan: "pro",
+  },
+  {
+    title: "Usage",
+    url: "/usage",
+    icon: CoinsIcon,
+    plan: "free",
+  },
+  {
+    title: "AI Chat",
+    url: "/chat",
+    icon: BotIcon,
+    plan: "pro",
+  },
+  {
+    title: "Themes",
+    url: "/themes",
+    icon: PaletteIcon,
+    plan: "free",
   },
 ];
 
-export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
+const PLAN_HIERARCHY: Record<string, number> = {
+  free: 0,
+  pro: 1,
+  enterprise: 2,
+};
+
+const filterNavByPlan = (items: NavItem[], currentPlan: string) => {
+  const planLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
+  return items.filter((item) => {
+    const requiredLevel = PLAN_HIERARCHY[item.plan || "free"] ?? 0;
+    return planLevel >= requiredLevel;
+  });
+};
+
+export const GlobalSidebar = ({
+  children,
+  currentPlan = "free",
+}: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
+  const filteredNav = filterNavByPlan(navMain, currentPlan);
 
   return (
     <>
@@ -84,7 +156,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {filteredNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <Link href={item.url}>

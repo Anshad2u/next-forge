@@ -18,6 +18,8 @@ import {
   FileTextIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { OnboardingChecklist } from "./components/onboarding-checklist";
+import { OverviewChart, UsersChart } from "./components/overview-chart";
 
 const title = "Dashboard";
 const description = "Overview of your account";
@@ -63,6 +65,33 @@ const App = async () => {
       // ignore
     }
   }
+
+  const onboardingSteps = [
+    {
+      title: "Complete your profile",
+      description: "Add your name and avatar",
+      href: "/settings",
+      completed: !!(user?.firstName && user?.lastName),
+    },
+    {
+      title: "Set up billing",
+      description: "Choose a plan that fits your needs",
+      href: "/billing",
+      completed: currentPlan !== "Free",
+    },
+    {
+      title: "Configure webhooks",
+      description: "Set up event notifications",
+      href: "/webhooks",
+      completed: false,
+    },
+    {
+      title: "Explore the dashboard",
+      description: "Familiarize yourself with the features",
+      href: "/",
+      completed: pages.length > 0,
+    },
+  ];
 
   const userName =
     user?.firstName || user?.emailAddresses?.[0]?.emailAddress || "there";
@@ -146,6 +175,20 @@ const App = async () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <OverviewChart />
+        <UsersChart />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <OverviewChart />
+        </div>
+        <OnboardingChecklist steps={onboardingSteps} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <UsersChart />
+
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>

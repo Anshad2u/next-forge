@@ -23,6 +23,22 @@ const securityHeaders = env.FLAGS_SECRET
   ? securityMiddleware(noseconeOptionsWithToolbar)
   : securityMiddleware(noseconeOptions);
 
+// Maintenance mode middleware
+const maintenanceMiddleware = async (request: NextRequest) => {
+  if (env.MAINTENANCE_MODE === "1" || env.MAINTENANCE_MODE === "true") {
+    // Allow API routes and static assets to pass through
+    const pathname = request.nextUrl.pathname;
+    if (
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes(".")
+    ) {
+      return;
+    }
+    return NextResponse.rewrite(new URL("/maintenance", request.url));
+  }
+};
+
 // Custom middleware for Arcjet security checks
 const arcjetMiddleware = async (request: NextRequest) => {
   if (!env.ARCJET_KEY) {
@@ -49,7 +65,11 @@ const arcjetMiddleware = async (request: NextRequest) => {
 const composedMiddleware = createNEMO(
   {},
   {
-    before: [internationalizationMiddleware, arcjetMiddleware],
+    before: [
+      maintenanceMiddleware,
+      internationalizationMiddleware,
+      arcjetMiddleware,
+    ],
   }
 );
 

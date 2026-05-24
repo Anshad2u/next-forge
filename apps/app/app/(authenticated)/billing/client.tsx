@@ -14,7 +14,7 @@ import { cn } from "@repo/design-system/lib/utils";
 import { CheckCircle2Icon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
-import { createCheckoutSession } from "./actions";
+import { createCheckoutSession, createPortalSession } from "./actions";
 
 const PLANS = [
   {
@@ -63,6 +63,7 @@ export const BillingClient = ({
   currentStatus,
 }: BillingClientProps) => {
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
@@ -85,6 +86,21 @@ export const BillingClient = ({
     [router]
   );
 
+  const handlePortal = useCallback(async () => {
+    setOpeningPortal(true);
+    try {
+      const result = await createPortalSession();
+      if (result?.url) {
+        router.push(result.url);
+      }
+    } catch (error) {
+      console.error("Portal failed:", error);
+      alert("Could not open billing portal. You may not have an active subscription.");
+    } finally {
+      setOpeningPortal(false);
+    }
+  }, [router]);
+
   return (
     <div className="flex flex-1 flex-col gap-8 p-8">
       <div>
@@ -102,10 +118,20 @@ export const BillingClient = ({
       )}
 
       {currentStatus === "active" && currentPlan !== "free" && (
-        <div className="flex items-center gap-2 rounded-md bg-blue-500/10 p-4 text-sm text-blue-600">
-          <CheckCircle2Icon className="h-4 w-4" />
-          You are currently on the{" "}
-          <Badge variant="secondary">{currentPlan}</Badge> plan.
+        <div className="flex items-center justify-between rounded-md bg-blue-500/10 p-4 text-sm text-blue-600">
+          <div className="flex items-center gap-2">
+            <CheckCircle2Icon className="h-4 w-4" />
+            You are currently on the{" "}
+            <Badge variant="secondary">{currentPlan}</Badge> plan.
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={openingPortal}
+            onClick={handlePortal}
+          >
+            {openingPortal ? "Opening..." : "Manage Subscription"}
+          </Button>
         </div>
       )}
 
