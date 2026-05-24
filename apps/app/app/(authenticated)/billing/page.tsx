@@ -10,17 +10,22 @@ import {
   CardTitle,
 } from "@repo/design-system/components/ui/card";
 import { cn } from "@repo/design-system/lib/utils";
-import { useState } from "react";
+import { CheckCircle2Icon } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
+import { createCheckoutSession } from "./actions";
 
 const PLANS = [
   {
     name: "Free",
     price: "$0",
+    priceId: null,
     features: ["Up to 3 projects", "Basic analytics", "Community support"],
   },
   {
     name: "Pro",
     price: "$29",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "price_pro",
     popular: true,
     features: [
       "Unlimited projects",
@@ -32,6 +37,8 @@ const PLANS = [
   {
     name: "Enterprise",
     price: "$99",
+    priceId:
+      process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise",
     features: [
       "Everything in Pro",
       "Custom integrations",
@@ -43,13 +50,28 @@ const PLANS = [
 ];
 
 const BillingPage = () => {
-  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const success = searchParams.get("success");
 
-  const handleCheckout = async () => {
-    setCheckingOut(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setCheckingOut(false);
-  };
+  const handleCheckout = useCallback(
+    async (priceId: string) => {
+      setCheckingOut(priceId);
+      try {
+        const result = await createCheckoutSession(priceId);
+        if (result?.url) {
+          router.push(result.url);
+        }
+      } catch (error) {
+        console.error("Checkout failed:", error);
+        alert("Checkout failed. Stripe may not be configured.");
+      } finally {
+        setCheckingOut(null);
+      }
+    },
+    [router]
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-8 p-8">
@@ -59,6 +81,13 @@ const BillingPage = () => {
           Manage your subscription and billing
         </p>
       </div>
+
+      {success && (
+        <div className="flex items-center gap-2 rounded-md bg-green-500/10 p-4 text-sm text-green-600">
+          <CheckCircle2Icon className="h-4 w-4" />
+          Payment successful! Your subscription is now active.
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => (
@@ -71,7 +100,7 @@ const BillingPage = () => {
             )}
           >
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground animate-pulse">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
                 Most Popular
               </div>
             )}
@@ -95,39 +124,26 @@ const BillingPage = () => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                className="w-full"
-                variant={plan.popular ? "default" : "outline"}
-                disabled={checkingOut}
-                onClick={handleCheckout}
-              >
-                {checkingOut
-                  ? "Redirecting to Stripe..."
-                  : plan.name === "Free"
-                    ? "Current Plan"
+              {plan.priceId ? (
+                <Button
+                  className="w-full"
+                  variant={plan.popular ? "default" : "outline"}
+                  disabled={checkingOut !== null}
+                  onClick={() => handleCheckout(plan.priceId!)}
+                >
+                  {checkingOut === plan.priceId
+                    ? "Redirecting to Stripe..."
                     : `Subscribe to ${plan.name}`}
-              </Button>
+                </Button>
+              ) : (
+                <Button className="w-full" variant="outline" disabled>
+                  Current Plan
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}
       </div>
-
-      {checkingOut && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 rounded-lg border bg-card p-8 shadow-xl animate-in zoom-in-95">
-            <div className="relative h-16 w-16">
-              <div className="absolute inset-0 animate-spin rounded-full border-4 border-muted border-t-primary" />
-              <div className="absolute inset-2 flex items-center justify-center">
-                <span className="text-2xl">&#9889;</span>
-              </div>
-            </div>
-            <p className="text-lg font-semibold">Connecting to Stripe...</p>
-            <p className="text-sm text-muted-foreground">
-              This is a mock checkout. Stripe is not yet configured.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
