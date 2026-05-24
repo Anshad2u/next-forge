@@ -33,6 +33,7 @@ const App = async () => {
 
   let pages: Page[] = [];
   let error: string | null = null;
+  let currentPlan = "Free";
 
   try {
     await secure();
@@ -46,6 +47,21 @@ const App = async () => {
     const msg = e instanceof Error ? e.message : String(e);
     error = msg;
     log.error("DB error: " + msg);
+  }
+
+  if (userId) {
+    try {
+      const subscription = await database.subscription.findUnique({
+        where: { userId },
+      });
+      if (subscription?.plan && subscription.plan !== "free") {
+        currentPlan =
+          subscription.plan.charAt(0).toUpperCase() +
+          subscription.plan.slice(1);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   const userName =
@@ -94,7 +110,7 @@ const App = async () => {
             <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Free</div>
+            <div className="text-2xl font-bold">{currentPlan}</div>
             <p className="text-xs text-muted-foreground">
               <Link href="/billing" className="underline">
                 Upgrade to Pro
