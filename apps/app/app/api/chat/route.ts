@@ -38,6 +38,13 @@ export async function POST(req: Request) {
     });
   }
 
+  if (!process.env.OPENAI_API_KEY) {
+    return Response.json(
+      { error: "AI is not configured. Set OPENAI_API_KEY in your environment variables." },
+      { status: 503 }
+    );
+  }
+
   try {
     const result = streamText({
       model: models.chat,

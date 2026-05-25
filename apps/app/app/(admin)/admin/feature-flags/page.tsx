@@ -5,29 +5,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/design-system/components/ui/card";
-import { Badge } from "@repo/design-system/components/ui/badge";
+import { database } from "@repo/database";
 import { FlagIcon } from "lucide-react";
+import { FeatureFlagsClient } from "./client";
 
 const AdminFeatureFlagsPage = async () => {
-  // Feature flags are configured via Vercel Flags / environment variables
-  // This page shows the current flag state
+  let dbSettings: { key: string; value: string }[] = [];
+  try {
+    dbSettings = await database.setting.findMany();
+  } catch {
+    // ignore
+  }
+
+  const getSetting = (key: string, defaultValue = "false") =>
+    dbSettings.find((s) => s.key === key)?.value || defaultValue;
+
   const flags = [
     {
-      name: "showBetaFeature",
-      description: "Show beta features to users",
-      enabled: process.env.FLAGS_SECRET ? true : false,
+      name: "Maintenance Mode",
+      key: "MAINTENANCE_MODE",
+      description: "Show a maintenance page to all users. Admins are unaffected.",
+      enabled: getSetting("MAINTENANCE_MODE") === "true",
       scope: "Global",
     },
     {
-      name: "maintenanceMode",
-      description: "Enable maintenance mode for the platform",
-      enabled: process.env.MAINTENANCE_MODE === "true",
+      name: "Registration",
+      key: "REGISTRATION_ENABLED",
+      description: "Allow new users to sign up.",
+      enabled: getSetting("REGISTRATION_ENABLED", "true") === "true",
       scope: "Global",
     },
     {
-      name: "aiChatEnabled",
-      description: "Enable AI chat functionality",
-      enabled: !!process.env.OPENAI_API_KEY,
+      name: "AI Chat",
+      key: "AI_CHAT_ENABLED",
+      description: "Enable the AI chat feature for users.",
+      enabled: getSetting("AI_CHAT_ENABLED", "true") === "true",
+      scope: "Global",
+    },
+    {
+      name: "Webhooks",
+      key: "WEBHOOKS_ENABLED",
+      description: "Enable webhook delivery.",
+      enabled: getSetting("WEBHOOKS_ENABLED", "true") === "true",
       scope: "Global",
     },
   ];
@@ -36,36 +55,21 @@ const AdminFeatureFlagsPage = async () => {
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Feature Flags</h1>
-        <p className="text-muted-foreground">Manage platform feature flags and rollouts.</p>
+        <p className="text-muted-foreground">Toggle platform features on or off.</p>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <FlagIcon className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Active Flags</CardTitle>
+            <CardTitle>Feature Flags</CardTitle>
           </div>
           <CardDescription>
-            Configure feature flags via Vercel dashboard or environment variables.
+            Toggle features on or off for all users. Changes take effect immediately.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {flags.map((flag) => (
-              <div key={flag.name} className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="font-medium">{flag.name}</p>
-                  <p className="text-sm text-muted-foreground">{flag.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{flag.scope}</Badge>
-                  <Badge variant={flag.enabled ? "default" : "secondary"}>
-                    {flag.enabled ? "Enabled" : "Disabled"}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+          <FeatureFlagsClient flags={flags} />
         </CardContent>
       </Card>
     </div>

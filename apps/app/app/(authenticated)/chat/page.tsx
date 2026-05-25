@@ -29,12 +29,18 @@ const ChatPage = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } =
     useChat({
       api: "/api/chat",
       body: { conversationId: activeConversationId },
       onFinish: () => {
         loadConversations();
+        setError(null);
+      },
+      onError: (err) => {
+        setError(err.message || "Something went wrong. AI may not be configured.");
       },
     });
 
@@ -160,6 +166,11 @@ const ChatPage = () => {
                     Ask me anything about your account, billing, or features.
                   </p>
                 </div>
+                {error && (
+                  <p className="mt-2 max-w-md rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                    {error}
+                  </p>
+                )}
               </div>
             )}
             {messages.map((message) => (
