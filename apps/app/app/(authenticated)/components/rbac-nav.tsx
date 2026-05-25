@@ -1,6 +1,6 @@
 "use client";
 
-import { useOrganization } from "@clerk/nextjs";
+import { useOrganization } from "@repo/auth/client";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {

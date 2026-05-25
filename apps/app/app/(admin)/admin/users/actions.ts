@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin";
 export const createImpersonationToken = async (userId: string) => {
   await requireAdmin();
 
-  const { clerkClient } = await import("@clerk/nextjs/server");
+  const { clerkClient } = await import("@repo/auth/server");
   const client = await clerkClient();
 
   const user = await client.users.getUser(userId);

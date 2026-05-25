@@ -22,7 +22,7 @@ const AdminOrgsPage = async () => {
   let orgs: { id: string; name: string; slug: string; imageUrl: string; membersCount: number; createdAt: number }[] = [];
 
   try {
-    const { clerkClient } = await import("@clerk/nextjs/server");
+    const { clerkClient } = await import("@repo/auth/server");
     const client = await clerkClient();
     const response = await client.organizations.getOrganizationList({ limit: 100 });
     orgs = response.data.map((org) => ({

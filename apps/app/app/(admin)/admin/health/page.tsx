@@ -28,7 +28,7 @@ const checkDB = async (): Promise<HealthCheck> => {
 
 const checkClerk = async (): Promise<HealthCheck> => {
   try {
-    const { clerkClient } = await import("@clerk/nextjs/server");
+    const { clerkClient } = await import("@repo/auth/server");
     const client = await clerkClient();
     await client.users.getUserList({ limit: 1 });
     return { name: "Clerk Auth", status: "ok" };
