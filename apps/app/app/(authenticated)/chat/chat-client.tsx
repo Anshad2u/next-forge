@@ -30,7 +30,7 @@ const ChatClient = () => {
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } =
     useChat({
       api: "/api/chat",
-      body: { conversationId: activeConversationId },
+      body: { conversationId: activeConversationId || undefined },
       onFinish: () => {
         loadConversations();
         setChatError(null);
@@ -57,11 +57,11 @@ const ChatClient = () => {
     try {
       const history = await getMessages(conversationId);
       const formatted = history
-        .filter((m) => m.content)
+        .filter((m) => m.content != null)
         .map((m) => ({
           id: m.id,
           role: m.role as "user" | "assistant",
-          content: m.content,
+          content: m.content ?? "",
           createdAt: m.createdAt,
         }));
       setMessages(formatted);
@@ -78,7 +78,10 @@ const ChatClient = () => {
   const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteConversation(id);
-      if (activeConversationId === id) { setActiveConversationId(null); setMessages([]); }
+      if (activeConversationId === id) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
       loadConversations();
     } catch { /* ignore */ }
   }, [activeConversationId, setMessages, loadConversations]);
@@ -89,23 +92,35 @@ const ChatClient = () => {
       <div className="hidden w-64 shrink-0 flex-col md:flex">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground">Conversations</h2>
-          <Button variant="ghost" size="sm" onClick={handleNewChat}><PlusIcon className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={handleNewChat}>
+            <PlusIcon className="h-4 w-4" />
+          </Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="space-y-1">
             {conversations.map((conv) => (
-              <div key={conv.id}
-                className={`group flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${activeConversationId === conv.id ? "bg-muted" : ""}`}
-                onClick={() => loadConversation(conv.id)}>
+              <div
+                key={conv.id}
+                className={`group flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
+                  activeConversationId === conv.id ? "bg-muted" : ""
+                }`}
+                onClick={() => loadConversation(conv.id)}
+              >
                 <MessageSquareIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate">{conv.title}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  onClick={(e) => { e.stopPropagation(); handleDelete(conv.id); }}>
+                <span className="flex-1 truncate">{conv.title || "Untitled"}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(conv.id); }}
+                >
                   <TrashIcon className="h-3 w-3" />
                 </Button>
               </div>
             ))}
-            {conversations.length === 0 && <p className="px-3 py-8 text-center text-xs text-muted-foreground">No conversations yet</p>}
+            {conversations.length === 0 && (
+              <p className="px-3 py-8 text-center text-xs text-muted-foreground">No conversations yet</p>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -125,31 +140,60 @@ const ChatClient = () => {
                 <BotIcon className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <p className="font-medium">How can I help you today?</p>
-                  <p className="text-sm text-muted-foreground">Ask me anything about your account, billing, or features.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Ask me anything about your account, billing, or features.
+                  </p>
                 </div>
-                {chatError && <p className="mt-2 max-w-md rounded-md bg-destructive/10 p-3 text-sm text-destructive">{chatError}</p>}
+                {chatError && (
+                  <p className="mt-2 max-w-md rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                    {chatError}
+                  </p>
+                )}
               </div>
             )}
             {messages.map((message) => (
-              <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                {message.role === "assistant" && <BotIcon className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5" />}
-                <div className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+              <div
+                key={message.id}
+                className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {message.role === "assistant" && (
+                  <BotIcon className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5" />
+                )}
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
                   <p className="whitespace-pre-wrap text-sm">{message.content || ""}</p>
                 </div>
-                {message.role === "user" && <UserIcon className="h-8 w-8 shrink-0 rounded-full bg-primary p-1.5 text-primary-foreground" />}
+                {message.role === "user" && (
+                  <UserIcon className="h-8 w-8 shrink-0 rounded-full bg-primary p-1.5 text-primary-foreground" />
+                )}
               </div>
             ))}
             {isLoading && (
               <div className="flex gap-3">
                 <BotIcon className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5" />
-                <div className="rounded-lg bg-muted px-4 py-2"><p className="text-sm animate-pulse">Thinking...</p></div>
+                <div className="rounded-lg bg-muted px-4 py-2">
+                  <p className="text-sm animate-pulse">Thinking...</p>
+                </div>
               </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="flex shrink-0 items-center gap-2 border-t pt-4">
-            <Input value={input} onChange={handleInputChange} placeholder="Type your message..." disabled={isLoading || loadingHistory} className="flex-1" />
-            <Button type="submit" disabled={isLoading || loadingHistory || !input.trim()}><SendIcon className="h-4 w-4" /></Button>
+            <Input
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Type your message..."
+              disabled={isLoading || loadingHistory}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={isLoading || loadingHistory || !input.trim()}>
+              <SendIcon className="h-4 w-4" />
+            </Button>
           </form>
         </CardContent>
       </Card>
