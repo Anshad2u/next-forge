@@ -5,11 +5,32 @@ import { streamText } from "ai";
 
 export const maxDuration = 30;
 
+// Return error as a valid AI SDK data stream so useChat can parse it
+const errorStream = (text: string) => {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
+        controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
+        controller.close();
+      },
+    }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "X-Vercel-AI-Data-Stream": "v1",
+      },
+    }
+  );
+};
+
 export async function POST(req: Request) {
   const { userId } = await auth();
 
   if (!userId) {
-    return new Response("Unauthorized. Please sign in.", { status: 401 });
+    return errorStream("Unauthorized. Please sign in.");
   }
 
   // Check if AI is enabled
@@ -20,7 +41,7 @@ export async function POST(req: Request) {
   } catch { /* default enabled */ }
 
   if (!aiEnabled) {
-    return new Response("AI chat is currently disabled by the administrator.", { status: 503 });
+    return errorStream("AI chat is currently disabled by the administrator.");
   }
 
   // Read AI config from DB settings
@@ -41,7 +62,7 @@ export async function POST(req: Request) {
   } catch { /* use defaults */ }
 
   if (!apiKey) {
-    return new Response("AI is not configured yet. Go to Admin \u2192 Chat Settings to add your API key.", { status: 503 });
+    return errorStream("AI is not configured yet. Go to Admin \u2192 Chat Settings to add your API key.");
   }
 
   const { messages, conversationId } = await req.json();
@@ -84,6 +105,6 @@ export async function POST(req: Request) {
       headers: { "x-conversation-id": activeConversationId || "" },
     });
   } catch {
-    return new Response("AI request failed. Check your API key and endpoint in Admin \u2192 Chat Settings.", { status: 500 });
+    return errorStream("AI request failed. Check your API key and endpoint in Admin \u2192 Chat Settings.");
   }
 }
