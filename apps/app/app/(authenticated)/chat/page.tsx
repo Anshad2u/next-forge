@@ -1,6 +1,6 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 import { Message } from "@repo/ai/components/message";
 import { Thread } from "@repo/ai/components/thread";
 import { Button } from "@repo/design-system/components/ui/button";
