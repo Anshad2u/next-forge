@@ -1,7 +1,7 @@
 import { auth } from "@repo/auth/server";
 import { database } from "@repo/database";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, createDataStreamResponse } from "ai";
+import { streamText } from "ai";
 
 export const maxDuration = 30;
 
@@ -9,12 +9,7 @@ export async function POST(req: Request) {
   const { userId } = await auth();
 
   if (!userId) {
-    return createDataStreamResponse({
-      execute: async (writer) => {
-        writer.writeData({ type: "error", message: "Unauthorized. Please sign in." });
-        writer.write("Unauthorized. Please sign in.");
-      },
-    });
+    return new Response("Unauthorized. Please sign in.", { status: 401 });
   }
 
   // Check if AI is enabled
@@ -25,11 +20,7 @@ export async function POST(req: Request) {
   } catch { /* default enabled */ }
 
   if (!aiEnabled) {
-    return createDataStreamResponse({
-      execute: async (writer) => {
-        writer.write("AI chat is currently disabled by the administrator.");
-      },
-    });
+    return new Response("AI chat is currently disabled by the administrator.", { status: 503 });
   }
 
   // Read AI config from DB settings
@@ -50,11 +41,7 @@ export async function POST(req: Request) {
   } catch { /* use defaults */ }
 
   if (!apiKey) {
-    return createDataStreamResponse({
-      execute: async (writer) => {
-        writer.write("AI is not configured yet. Go to Admin \u2192 Chat Settings to add your API key.");
-      },
-    });
+    return new Response("AI is not configured yet. Go to Admin \u2192 Chat Settings to add your API key.", { status: 503 });
   }
 
   const { messages, conversationId } = await req.json();
@@ -97,10 +84,6 @@ export async function POST(req: Request) {
       headers: { "x-conversation-id": activeConversationId || "" },
     });
   } catch {
-    return createDataStreamResponse({
-      execute: async (writer) => {
-        writer.write("AI request failed. Check your API key and endpoint in Admin \u2192 Chat Settings.");
-      },
-    });
+    return new Response("AI request failed. Check your API key and endpoint in Admin \u2192 Chat Settings.", { status: 500 });
   }
 }
