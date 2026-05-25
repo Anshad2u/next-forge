@@ -1,22 +1,76 @@
+import { auth } from "@repo/auth/server";
+import { database } from "@repo/database";
 import { models } from "@repo/ai/lib/models";
 import { streamText } from "ai";
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { userId } = await auth();
 
-  const result = streamText({
-    model: models.chat,
-    system: `You are a helpful AI assistant for a SaaS application. You can help users with:
-- Account and billing questions
-- Feature explanations
-- General productivity advice
-- Technical support
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-Be concise, helpful, and professional.`,
-    messages,
-  });
+  const { messages, conversationId } = await req.json();
+  const lastUserMessage = messages[messages.length - 1];
 
-  return result.toDataStreamResponse();
+  // Ensure conversation exists
+  let activeConversationId = conversationId;
+  if (!activeConversationId && lastUserMessage) {
+    const conversation = await database.conversation.create({
+      data: {
+        userId,
+        title: lastUserMessage.content.slice(0, 100),
+      },
+    });
+    activeConversationId = conversation.id;
+  }
+
+  // Save user message to DB
+  if (lastUserMessage && activeConversationId) {
+    await database.message.create({
+      data: {
+        role: lastUserMessage.role,
+        content: lastUserMessage.content,
+        conversationId: activeConversationId,
+      },
+    });
+  }
+
+  try {
+    const result = streamText({
+      model: models.chat,
+      system:
+        "You are a helpful assistant for a SaaS application. Be concise and helpful.",
+      messages,
+      onFinish: async (event) => {
+        // Save assistant response to DB
+        if (activeConversationId && event.text) {
+          await database.message.create({
+            data: {
+              role: "assistant",
+              content: event.text,
+              model: models.chat.modelId,
+              conversationId: activeConversationId,
+            },
+          });
+        }
+      },
+    });
+
+    return result.toDataStreamResponse({
+      headers: {
+        "x-conversation-id": activeConversationId || "",
+      },
+    });
+  } catch {
+    return Response.json(
+      {
+        error:
+          "AI is not configured. Set OPENAI_API_KEY in your environment variables.",
+      },
+      { status: 500 }
+    );
+  }
 }
