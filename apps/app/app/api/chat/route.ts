@@ -1,6 +1,5 @@
 import { auth } from "@repo/auth/server";
 import { database } from "@repo/database";
-import { models } from "@repo/ai/lib/models";
 import { streamText } from "ai";
 
 export const maxDuration = 30;
@@ -10,6 +9,24 @@ export async function POST(req: Request) {
 
   if (!userId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check if AI is enabled via feature flag
+  let aiEnabled = true;
+  try {
+    const setting = await database.setting.findUnique({ where: { key: "AI_CHAT_ENABLED" } });
+    if (setting && setting.value === "false") {
+      aiEnabled = false;
+    }
+  } catch {
+    // default to enabled
+  }
+
+  if (!aiEnabled || !process.env.OPENAI_API_KEY) {
+    return Response.json(
+      { error: "AI chat is not available. Contact your admin to enable it." },
+      { status: 503 }
+    );
   }
 
   const { messages, conversationId } = await req.json();
@@ -38,21 +55,16 @@ export async function POST(req: Request) {
     });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return Response.json(
-      { error: "AI is not configured. Set OPENAI_API_KEY in your environment variables." },
-      { status: 503 }
-    );
-  }
-
   try {
+    // Lazy import to avoid crashing when OPENAI_API_KEY is missing
+    const { models } = await import("@repo/ai/lib/models");
+
     const result = streamText({
       model: models.chat,
       system:
         "You are a helpful assistant for a SaaS application. Be concise and helpful.",
       messages,
       onFinish: async (event) => {
-        // Save assistant response to DB
         if (activeConversationId && event.text) {
           await database.message.create({
             data: {
@@ -73,10 +85,7 @@ export async function POST(req: Request) {
     });
   } catch {
     return Response.json(
-      {
-        error:
-          "AI is not configured. Set OPENAI_API_KEY in your environment variables.",
-      },
+      { error: "AI is not configured. Set OPENAI_API_KEY in your environment variables." },
       { status: 500 }
     );
   }
