@@ -1,6 +1,5 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
 import { Button } from "@repo/design-system/components/ui/button";
 import { Input } from "@repo/design-system/components/ui/input";
 import {
@@ -11,7 +10,7 @@ import {
 } from "@repo/design-system/components/ui/card";
 import { ScrollArea } from "@repo/design-system/components/ui/scroll-area";
 import { SendIcon, BotIcon, PlusIcon, TrashIcon, MessageSquareIcon, UserIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getConversations, getMessages, deleteConversation } from "./actions";
 
 interface Conversation {
@@ -21,24 +20,21 @@ interface Conversation {
   _count: { messages: number };
 }
 
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 const ChatClient = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } =
-    useChat({
-      api: "/api/chat",
-      body: { conversationId: activeConversationId || undefined },
-      onFinish: () => {
-        loadConversations();
-        setChatError(null);
-      },
-      onError: (err) => {
-        setChatError(err.message || "Something went wrong.");
-      },
-    });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -51,29 +47,32 @@ const ChatClient = () => {
     loadConversations();
   }, [loadConversations]);
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const loadConversation = useCallback(async (conversationId: string) => {
     setActiveConversationId(conversationId);
     setLoadingHistory(true);
+    setError(null);
     try {
       const history = await getMessages(conversationId);
-      const formatted = history
-        .filter((m) => m.content != null)
-        .map((m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content ?? "",
-          createdAt: m.createdAt,
-        }));
-      setMessages(formatted);
+      setMessages(
+        history
+          .filter((m) => m.content != null)
+          .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content ?? "" }))
+      );
     } catch { /* ignore */ }
     finally { setLoadingHistory(false); }
-  }, [setMessages]);
+  }, []);
 
   const handleNewChat = useCallback(() => {
     setActiveConversationId(null);
     setMessages([]);
-    setChatError(null);
-  }, [setMessages]);
+    setError(null);
+  }, []);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
@@ -84,10 +83,76 @@ const ChatClient = () => {
       }
       loadConversations();
     } catch { /* ignore */ }
-  }, [activeConversationId, setMessages, loadConversations]);
+  }, [activeConversationId, loadConversations]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput("");
+    setError(null);
+
+    const userMsg: ChatMessage = { id: `user-${Date.now()}`, role: "user", content: userMessage };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
+          conversationId: activeConversationId,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        setError(text || "Something went wrong.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Read streaming response
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      if (reader) {
+        const assistantMsg: ChatMessage = { id: `assistant-${Date.now()}`, role: "assistant", content: "" };
+        setMessages((prev) => [...prev, assistantMsg]);
+
+        while (true) => {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
+            )
+          );
+        }
+      }
+
+      // Update conversationId from response header
+      const newConvId = res.headers.get("x-conversation-id");
+      if (newConvId && !activeConversationId) {
+        setActiveConversationId(newConvId);
+      }
+
+      loadConversations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, messages, activeConversationId, loadConversations]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4 p-6">
+      {/* Sidebar */}
       <div className="hidden w-64 shrink-0 flex-col md:flex">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground">Conversations</h2>
@@ -108,8 +173,7 @@ const ChatClient = () => {
                 <MessageSquareIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate">{conv.title || "Untitled"}</span>
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="ghost" size="icon"
                   className="h-6 w-6 opacity-0 group-hover:opacity-100"
                   onClick={(e) => { e.stopPropagation(); handleDelete(conv.id); }}
                 >
@@ -124,6 +188,7 @@ const ChatClient = () => {
         </ScrollArea>
       </div>
 
+      {/* Chat */}
       <Card className="flex flex-1 flex-col">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
@@ -132,7 +197,7 @@ const ChatClient = () => {
           </div>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+          <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto pb-4">
             {messages.length === 0 && !loadingHistory && (
               <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                 <BotIcon className="h-12 w-12 text-muted-foreground" />
@@ -140,9 +205,7 @@ const ChatClient = () => {
                   <p className="font-medium">How can I help you today?</p>
                   <p className="text-sm text-muted-foreground">Ask me anything about your account, billing, or features.</p>
                 </div>
-                {chatError && (
-                  <p className="mt-2 max-w-md rounded-md bg-destructive/10 p-3 text-sm text-destructive">{chatError}</p>
-                )}
+                {error && <p className="mt-2 max-w-md rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
               </div>
             )}
             {messages.map((message) => (
@@ -154,7 +217,7 @@ const ChatClient = () => {
                 {message.role === "user" && <UserIcon className="h-8 w-8 shrink-0 rounded-full bg-primary p-1.5 text-primary-foreground" />}
               </div>
             ))}
-            {isLoading && (
+            {isLoading && !messages.some((m) => m.role === "assistant" && m.content) && (
               <div className="flex gap-3">
                 <BotIcon className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5" />
                 <div className="rounded-lg bg-muted px-4 py-2"><p className="text-sm animate-pulse">Thinking...</p></div>
@@ -163,7 +226,7 @@ const ChatClient = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex shrink-0 items-center gap-2 border-t pt-4">
-            <Input value={input} onChange={handleInputChange} placeholder="Type your message..." disabled={isLoading || loadingHistory} className="flex-1" />
+            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message..." disabled={isLoading || loadingHistory} className="flex-1" />
             <Button type="submit" disabled={isLoading || loadingHistory || !input.trim()}><SendIcon className="h-4 w-4" /></Button>
           </form>
         </CardContent>
