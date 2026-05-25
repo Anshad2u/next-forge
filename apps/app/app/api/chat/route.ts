@@ -5,11 +5,18 @@ import { streamText } from "ai";
 
 export const maxDuration = 30;
 
+// Return error as plain text so useChat doesn't crash on JSON
+const errorStream = (message: string) =>
+  new Response(message, {
+    status: 200,
+    headers: { "Content-Type": "text/plain" },
+  });
+
 export async function POST(req: Request) {
   const { userId } = await auth();
 
   if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return errorStream("Unauthorized. Please sign in.");
   }
 
   // Check if AI is enabled
@@ -20,7 +27,7 @@ export async function POST(req: Request) {
   } catch { /* default enabled */ }
 
   if (!aiEnabled) {
-    return Response.json({ error: "AI chat is not available. Contact your admin." }, { status: 503 });
+    return errorStream("AI chat is currently disabled by the administrator.");
   }
 
   // Read AI config from DB settings
@@ -41,7 +48,7 @@ export async function POST(req: Request) {
   } catch { /* use defaults */ }
 
   if (!apiKey) {
-    return Response.json({ error: "AI is not configured. Set an API key in Admin → Chat Settings." }, { status: 503 });
+    return errorStream("AI is not configured yet. Go to Admin \u2192 Chat Settings to add your API key.");
   }
 
   const { messages, conversationId } = await req.json();
@@ -84,6 +91,6 @@ export async function POST(req: Request) {
       headers: { "x-conversation-id": activeConversationId || "" },
     });
   } catch {
-    return Response.json({ error: "AI request failed. Check your API key and endpoint." }, { status: 500 });
+    return errorStream("AI request failed. Please check your API key and endpoint in Admin \u2192 Chat Settings.");
   }
 }
