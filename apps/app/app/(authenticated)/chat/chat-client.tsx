@@ -114,31 +114,20 @@ const ChatClient = () => {
         return;
       }
 
-      // Read streamed response
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
+      // Read full response as text
+      const responseText = await res.text();
+      // Parse AI SDK data stream: lines starting with "0:" are text chunks
       let assistantContent = "";
-      const assistantId = (Date.now() + 1).toString();
-
-      if (reader) {
-        setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          // Parse AI SDK data stream format: lines starting with "0:" are text chunks
-          for (const line of chunk.split("\n")) {
-            if (line.startsWith("0:")) {
-              try {
-                const text = JSON.parse(line.slice(2));
-                assistantContent += text;
-                setMessages((prev) =>
-                  prev.map((m) => m.id === assistantId ? { ...m, content: assistantContent } : m)
-                );
-              } catch { /* not valid JSON, skip */ }
-            }
-          }
+      for (const line of responseText.split("\n")) {
+        if (line.startsWith("0:")) {
+          try {
+            assistantContent += JSON.parse(line.slice(2));
+          } catch { /* skip */ }
         }
+      }
+      if (assistantContent) {
+        const assistantId = (Date.now() + 1).toString();
+        setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: assistantContent }]);
       }
 
       // Update conversation ID from response header
