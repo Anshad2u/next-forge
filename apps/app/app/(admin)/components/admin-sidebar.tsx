@@ -18,6 +18,7 @@ import {
 import {
   ActivityIcon,
   BarChart3Icon,
+  BotIcon,
   FlagIcon,
   GlobeIcon,
   LayoutDashboardIcon,
@@ -40,6 +41,7 @@ const adminNav = [
   { title: "Feature Flags", url: "/admin/feature-flags", icon: FlagIcon },
   { title: "Audit Log", url: "/admin/audit", icon: ShieldIcon },
   { title: "Settings", url: "/admin/settings", icon: SettingsIcon },
+  { title: "Chat Settings", url: "/admin/chat-settings", icon: BotIcon },
   { title: "Health", url: "/admin/health", icon: ActivityIcon },
   { title: "Webhook Logs", url: "/admin/webhooks", icon: MessageSquareWarningIcon },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3Icon },
