@@ -93,7 +93,7 @@ const ChatClient = () => {
     setInput("");
     setError(null);
 
-    const userMsg: ChatMessage = { id: `user-${Date.now()}`, role: "user", content: userMessage };
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: userMessage };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
@@ -103,48 +103,53 @@ const ChatClient = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
-          conversationId: activeConversationId,
+          conversationId: activeConversationId || undefined,
         }),
       });
 
       if (!res.ok) {
         const text = await res.text();
         setError(text || "Something went wrong.");
-        setIsLoading(false);
+        setMessages((prev) => prev.slice(0, -1));
         return;
       }
 
-      // Read streaming response
+      // Read streamed response
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let assistantContent = "";
+      const assistantId = (Date.now() + 1).toString();
 
       if (reader) {
-        const assistantMsg: ChatMessage = { id: `assistant-${Date.now()}`, role: "assistant", content: "" };
-        setMessages((prev) => [...prev, assistantMsg]);
-
-        while (true) => {
+        setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+        while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          assistantContent += chunk;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
-            )
-          );
+          // Parse AI SDK data stream format: lines starting with "0:" are text chunks
+          for (const line of chunk.split("\n")) {
+            if (line.startsWith("0:")) {
+              try {
+                const text = JSON.parse(line.slice(2));
+                assistantContent += text;
+                setMessages((prev) =>
+                  prev.map((m) => m.id === assistantId ? { ...m, content: assistantContent } : m)
+                );
+              } catch { /* not valid JSON, skip */ }
+            }
+          }
         }
       }
 
-      // Update conversationId from response header
+      // Update conversation ID from response header
       const newConvId = res.headers.get("x-conversation-id");
       if (newConvId && !activeConversationId) {
         setActiveConversationId(newConvId);
       }
-
       loadConversations();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
@@ -156,9 +161,7 @@ const ChatClient = () => {
       <div className="hidden w-64 shrink-0 flex-col md:flex">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground">Conversations</h2>
-          <Button variant="ghost" size="sm" onClick={handleNewChat}>
-            <PlusIcon className="h-4 w-4" />
-          </Button>
+          <Button variant="ghost" size="sm" onClick={handleNewChat}><PlusIcon className="h-4 w-4" /></Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="space-y-1">
@@ -173,7 +176,8 @@ const ChatClient = () => {
                 <MessageSquareIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate">{conv.title || "Untitled"}</span>
                 <Button
-                  variant="ghost" size="icon"
+                  variant="ghost"
+                  size="icon"
                   className="h-6 w-6 opacity-0 group-hover:opacity-100"
                   onClick={(e) => { e.stopPropagation(); handleDelete(conv.id); }}
                 >
@@ -217,7 +221,7 @@ const ChatClient = () => {
                 {message.role === "user" && <UserIcon className="h-8 w-8 shrink-0 rounded-full bg-primary p-1.5 text-primary-foreground" />}
               </div>
             ))}
-            {isLoading && !messages.some((m) => m.role === "assistant" && m.content) && (
+            {isLoading && !messages.some((m) => m.role === "assistant" && m.content === "") && (
               <div className="flex gap-3">
                 <BotIcon className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5" />
                 <div className="rounded-lg bg-muted px-4 py-2"><p className="text-sm animate-pulse">Thinking...</p></div>
@@ -226,8 +230,8 @@ const ChatClient = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex shrink-0 items-center gap-2 border-t pt-4">
-            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message..." disabled={isLoading || loadingHistory} className="flex-1" />
-            <Button type="submit" disabled={isLoading || loadingHistory || !input.trim()}><SendIcon className="h-4 w-4" /></Button>
+            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message..." disabled={isLoading} className="flex-1" />
+            <Button type="submit" disabled={isLoading || !input.trim()}><SendIcon className="h-4 w-4" /></Button>
           </form>
         </CardContent>
       </Card>
